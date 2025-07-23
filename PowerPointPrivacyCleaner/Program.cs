@@ -10,6 +10,9 @@ using Microsoft.Office.Interop.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
 using System.IO.Packaging;
 
+using iText.Kernel.Pdf;
+using iText.Kernel.XMP;
+
 namespace PPTMetadataCleaner
 {
     class Program
@@ -39,7 +42,7 @@ namespace PPTMetadataCleaner
                 return;
             }
 
-            string[] extensions = new[] { ".docx", ".xlsx", ".pptx" };
+            string[] extensions = new[] { ".docx", ".xlsx", ".pptx",".pdf" };
 
             var allFiles = Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
                                     .Where(file => extensions.Any(ext => file.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
@@ -65,18 +68,19 @@ namespace PPTMetadataCleaner
                     if (file.EndsWith(".pptx"))
                     {
                         shouldClean = CleanWithInterop_PPT(pptApp, file, forceClean);
-                        CleanWithOpenXml(file);
+                       // CleanWithOpenXml(file);
                     }
                     else if (file.EndsWith(".docx"))
                     {
                         shouldClean = CleanWithInterop_Word(wordApp, file, forceClean);
-                        CleanWithOpenXml(file);
+                       // CleanWithOpenXml(file);
                     }
                     else if (file.EndsWith(".xlsx"))
                     {
                         shouldClean = CleanWithInterop_Excel(excelApp, file, forceClean);
-                        CleanWithOpenXml(file);
+                       // CleanWithOpenXml(file);
                     }
+                    
 
 
 
@@ -192,7 +196,30 @@ namespace PPTMetadataCleaner
                 Marshal.ReleaseComObject(wb);
             }
         }
-        
+
+
+        static void CleanPdfMetadata(string inputPath)
+        {
+            string tempPath = @"D:\\msalvba";
+
+            PdfReader reader = new PdfReader(inputPath);
+            PdfWriter writer = new PdfWriter(tempPath);
+            PdfDocument pdfDoc = new PdfDocument(reader, writer);
+
+            PdfDocumentInfo info = pdfDoc.GetDocumentInfo();
+            info.SetTitle("");
+            info.SetAuthor("");
+            info.SetSubject("");
+            info.SetKeywords("");
+            info.SetCreator("");
+            info.SetProducer("");
+
+           // pdfDoc.GetXmpMetadata()?.Close(); // Remove XMP metadata
+            pdfDoc.Close();
+
+            File.Copy(tempPath, inputPath, true);
+            File.Delete(tempPath);
+        }
 
         static void ClearProperty(dynamic props, string name)
         {
